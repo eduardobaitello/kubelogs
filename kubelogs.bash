@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION="0.1.0-beta"
+VERSION="0.2.0"
 DEFAULT_NAMESPACE="default"
 
 
@@ -44,14 +44,13 @@ fi
 
 if [[ -z "$NAMESPACE" ]]; then NAMESPACE="$DEFAULT_NAMESPACE"; fi
 
-#Get pods name from namespace
+#Get pod names from namespace
 POD_LIST=(`kubectl get pods --namespace=$NAMESPACE --output=jsonpath='{.items[*].metadata.name}'`)
 
 if [[ -z ${POD_LIST[@]} ]]; then echo "No pods found for namespace $NAMESPACE"; exit; fi
 
 echo "Choose a pod:"
 PS3='Pod: '
-
 select pod in "${POD_LIST[@]}" "Cancel"
 do
   if [[ ! -z $pod ]] && [[ $pod != "Cancel" ]]; then
@@ -65,3 +64,17 @@ do
     echo "Invalid Pod!"
   fi
 done
+
+read -p "Enter directory for output file: " OUTPUT_DIR
+while [[ ! -w $OUTPUT_DIR ]] || [[ ! -d $OUTPUT_DIR ]]
+do
+  printf "Invalid directory or insuficient permissions!\n" >&2
+  read -p "Enter directory for output file: " OUTPUT_DIR
+done
+
+TIMESTAMP="$(date +"%Y%m%d_%H%M%S")"
+OUTPUT_NAME="$pod"_"$TIMESTAMP".log
+OUTPUT_FILE=$OUTPUT_DIR/$OUTPUT_NAME
+
+kubectl logs --timestamps --namespace=$NAMESPACE $pod > $OUTPUT_FILE || { printf "\nError to save log file!" >&2; exit 1; }
+echo "Log file saved in $OUTPUT_FILE"
