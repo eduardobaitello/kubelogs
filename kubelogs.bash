@@ -59,36 +59,36 @@ function select_pod() {
 #}
 
 if [ "$#" -ne 0 ]; then
-	while [ "$#" -gt 0 ]
-	do
-		case "$1" in
-		-h|--help)
-			echo "$USAGE"
-			exit 0
-			;;
-		-v|--version)
-			echo "$VERSION"
-			exit 0
-			;;
+  while [ "$#" -gt 0 ]
+  do
+    case "$1" in
+    -h|--help)
+          echo "$USAGE"
+          exit 0
+          ;;
+    -v|--version)
+          echo "$VERSION"
+          exit 0
+          ;;
     -n|--namespace)
-    			if [ -z "$2" ]; then
-    				select_namespace #Call select_namespace if parameter --namespace is empty
-    			else
-    				NAMESPACE="$2"
-    			fi
-    			;;
-          --)
-      			break
-      			;;
-      		-*)
-			       echo "Invalid option '$1'. Use --help to see the valid options" >&2
-			exit 1
-			;;
-		# an option argument, continue
-		*)  ;;
-		esac
-		shift
-	done
+          if [ -z "$2" ]; then
+            select_namespace #Call select_namespace if parameter --namespace is empty
+          else
+            NAMESPACE="$2"
+          fi
+          ;;
+    --)
+          break
+          ;;
+    -*)
+          echo "Invalid option '$1'. Use --help to see the valid options" >&2
+          exit 1
+          ;;
+    # an option argument, continue
+    *)  ;;
+    esac
+    shift
+  done
 fi
 
 
