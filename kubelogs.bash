@@ -53,10 +53,35 @@ function select_pod() {
   done
 }
 
-#TODO: A function to get containers from selected pod
-#function select_containers() {
-#
-#}
+function select_container() {
+  #Get container names from prod
+  CONTAINER_LIST=(`kubectl get pods --namespace=$NAMESPACE $POD --output=jsonpath='{.spec.containers[*].name}'`)
+
+  if [[ -z ${CONTAINER_LIST[@]} ]]; then echo "No containers found for pod $POD!" >&2; exit 1; fi
+
+  #If pod have just 1 container, use it and return the function
+  if [[ ${#CONTAINER_LIST[@]} -eq 1 ]]; then
+    CONTAINER=${CONTAINER_LIST[0]}
+    echo "Container selected is $CONTAINER"
+    return
+  fi
+
+  echo "Choose a container:"
+  PS3='Container: '
+  select option in "${CONTAINER_LIST[@]}" "CANCEL"
+  do
+    if [[ ! -z $option ]] && [[ $option != "CANCEL" ]]; then
+      CONTAINER=$option
+      echo "Container selected is $CONTAINER"
+      break
+    elif [[ $option = "CANCEL" ]]; then
+      echo "Bye!"
+      exit
+    else
+      echo "Invalid container!"
+    fi
+  done
+}
 
 if [ "$#" -ne 0 ]; then
   while [ "$#" -gt 0 ]
@@ -96,7 +121,9 @@ if [[ -z "$NAMESPACE" ]]; then select_namespace; fi #Call select_namespace funct
 
 select_pod #Call select_pod function
 
-read -p "Enter a local directory for output file: " OUTPUT_DIR
+select_container #Call select_container function
+
+read -p "Type a local directory for output file: " OUTPUT_DIR
 while [[ ! -w $OUTPUT_DIR ]] || [[ ! -d $OUTPUT_DIR ]]
 do
   printf "Invalid directory or insuficient permissions!\n" >&2
@@ -104,9 +131,9 @@ do
 done
 
 TIMESTAMP="$(date +"%Y%m%d_%H%M%S")"
-OUTPUT_NAME="$POD"_"$TIMESTAMP".log
+OUTPUT_NAME="$POD"_"$CONTAINER"_"$TIMESTAMP".log
 OUTPUT_FILE=$OUTPUT_DIR/$OUTPUT_NAME
 
 #Get logs from pod and save to local file
-kubectl logs --timestamps --namespace=$NAMESPACE $POD > $OUTPUT_FILE || { printf "\nError to get log content!" >&2; exit 1; }
+kubectl logs --timestamps --namespace=$NAMESPACE $POD -c $CONTAINER > $OUTPUT_FILE || { printf "\nError to get log content!" >&2; exit 1; }
 echo "Log file saved in $OUTPUT_FILE"
