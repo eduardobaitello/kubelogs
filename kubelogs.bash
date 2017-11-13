@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 VERSION="0.2.1"
 
 USAGE="kubelogs [-h] [-n] [-v] -- dump kubernetes pod logs to local file
