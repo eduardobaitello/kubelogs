@@ -1,7 +1,7 @@
 # Change log
 What changes through the versions.
 
-## [Unreleased]
+## [0.3.0]
 ### Changed
  - Improved code indentation
  - Improved bash shebang to be more system
