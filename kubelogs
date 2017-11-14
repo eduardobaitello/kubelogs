@@ -13,7 +13,7 @@ function select_namespace() {
 
   if [[ -z ${NAMESPACE_LIST[@]} ]]; then echo "No namespaces found for this context!" >&2; exit 1; fi
 
-  echo "Choose a namespace:"
+  printf "Choose a namespace:\n"
   PS3='Namespace: '
   select option in "${NAMESPACE_LIST[@]}" "CANCEL"
   do
@@ -36,7 +36,7 @@ function select_pod() {
 
   if [[ -z ${POD_LIST[@]} ]]; then echo "No pods found for namespace $NAMESPACE!" >&2; exit 1; fi
 
-  echo "Choose a pod:"
+  printf "\nChoose a pod:\n"
   PS3='Pod: '
   select option in "${POD_LIST[@]}" "CANCEL"
   do
@@ -62,11 +62,11 @@ function select_container() {
   #If pod have just 1 container, use it and return the function
   if [[ ${#CONTAINER_LIST[@]} -eq 1 ]]; then
     CONTAINER=${CONTAINER_LIST[0]}
-    echo "Container selected is $CONTAINER"
+    echo "Using the $CONTAINER unique container"
     return
   fi
 
-  echo "Choose a container:"
+  printf "\nChoose a container:\n"
   PS3='Container: '
   select option in "${CONTAINER_LIST[@]}" "CANCEL"
   do
