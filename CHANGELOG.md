@@ -4,7 +4,7 @@ What changes through the versions.
 ## [0.3.0]
 ### Changed
  - Improved code indentation
- - Improved bash shebang to be more system
+ - Improved bash shebang to be more system agnostic
 ### Added
  - Support to interactively select containers from the container list
  - Created a CHANGELOG file and description/usage to the README file

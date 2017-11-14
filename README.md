@@ -2,8 +2,8 @@
 Kubelogs is a bash script that uses your current `kubectl context` to navigate through namespaces, pods and containers, saving their logs to a local text file.
 
 ## Usage
-Just use `kubelogs` and navigate through the options to choose your container. Once select, type the output local directory to save the `.log` text file.  
-The output file will be created with the name `POD_CONTAINER_TIMESTAMP.log` .
+Just use `kubelogs` and navigate through the options to choose your container. Once selected, type the output local directory to save the `.log` text file.  
+The output file will be created with the name `POD_CONTAINER_TIMESTAMP.log`
 
 ### Example
 
