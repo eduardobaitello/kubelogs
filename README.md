@@ -1,3 +1,9 @@
+<!--
+  Title: kubelogs
+  Description: Interactively dump Kubernetes container logs to local file.
+  Author: eduardobaitello
+  -->
+
 # kubelogs
 Kubelogs is a bash script that uses your current `kubectl context` to navigate through namespaces, pods and containers, saving their logs to a local text file.
 
