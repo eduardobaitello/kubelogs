@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 VERSION="0.3.0"
 
-USAGE="kubelogs [-h] [-n] [-v] -- dump kubernetes pod logs to local file
+USAGE="kubelogs [-h] [-n] [-v] -- dump kubernetes pod logs to local files
 Options:
     -h, --help           Show this help text
     -n, --namespace      The Kubernetes namespace to list pods. If empty list available namespaces
     -v, --version        Prints the kubelogs version"
 
+# Get namespace list from current context
 function select_namespace() {
-  #Get namespace names for current context
   NAMESPACE_LIST=(`kubectl get namespaces --output=jsonpath='{.items[*].metadata.name}'`)
 
   if [[ -z ${NAMESPACE_LIST[@]} ]]; then echo "No namespaces found for this context!" >&2; exit 1; fi
 
-  printf "Choose a namespace:\n"
+  printf "Select a namespace:\n"
   PS3='Namespace: '
   select option in "${NAMESPACE_LIST[@]}" "CANCEL"
   do
@@ -30,13 +30,13 @@ function select_namespace() {
   done
 }
 
+# Get pod list from namespace
 function select_pod() {
-  #Get pod names from namespace
   POD_LIST=(`kubectl get pods --namespace=$NAMESPACE --output=jsonpath='{.items[*].metadata.name}'`)
 
   if [[ -z ${POD_LIST[@]} ]]; then echo "No pods found for namespace $NAMESPACE!" >&2; exit 1; fi
 
-  printf "\nChoose a pod:\n"
+  printf "\nSelect a pod:\n"
   PS3='Pod: '
   select option in "${POD_LIST[@]}" "CANCEL"
   do
@@ -53,20 +53,20 @@ function select_pod() {
   done
 }
 
+# Get container list from prod
 function select_container() {
-  #Get container names from prod
   CONTAINER_LIST=(`kubectl get pods --namespace=$NAMESPACE $POD --output=jsonpath='{.spec.containers[*].name}'`)
 
   if [[ -z ${CONTAINER_LIST[@]} ]]; then echo "No containers found for pod $POD!" >&2; exit 1; fi
 
-  #If pod have just 1 container, use it and return the function
+  # If pod just have 1 container, use it and return
   if [[ ${#CONTAINER_LIST[@]} -eq 1 ]]; then
     CONTAINER=${CONTAINER_LIST[0]}
     echo "Using the $CONTAINER unique container"
     return
   fi
 
-  printf "\nChoose a container:\n"
+  printf "\nSelect a container:\n"
   PS3='Container: '
   select option in "${CONTAINER_LIST[@]}" "CANCEL"
   do
@@ -116,14 +116,16 @@ if [ "$#" -ne 0 ]; then
   done
 fi
 
+# Call select_namespace function if $NAMESPACE is empty
+if [[ -z "$NAMESPACE" ]]; then select_namespace; fi
 
-if [[ -z "$NAMESPACE" ]]; then select_namespace; fi #Call select_namespace function if $NAMESPACE is empty
+# Call select_pod function
+select_pod
 
-select_pod #Call select_pod function
+# Call select_container function
+select_container
 
-select_container #Call select_container function
-
-read -p "Type a local directory for output file: " OUTPUT_DIR
+read -p "Enter a local directory for output file(s): " OUTPUT_DIR
 while [[ ! -w $OUTPUT_DIR ]] || [[ ! -d $OUTPUT_DIR ]]
 do
   printf "Invalid directory or insuficient permissions!\n" >&2
@@ -134,6 +136,6 @@ TIMESTAMP="$(date +"%Y%m%d_%H%M%S")"
 OUTPUT_NAME="$POD"_"$CONTAINER"_"$TIMESTAMP".log
 OUTPUT_FILE=$OUTPUT_DIR/$OUTPUT_NAME
 
-#Get logs from pod and save to local file
-kubectl logs --timestamps --namespace=$NAMESPACE $POD -c $CONTAINER > $OUTPUT_FILE || { printf "\nError to get log content!" >&2; exit 1; }
-echo "Log file saved in $OUTPUT_FILE"
+# Get logs from pods and save to local file(s)
+kubectl logs --timestamps --namespace=$NAMESPACE $POD -c $CONTAINER > $OUTPUT_FILE || { printf "\nError while getting log content!" >&2; exit 1; }
+echo "Log file successfully saved in $OUTPUT_FILE"

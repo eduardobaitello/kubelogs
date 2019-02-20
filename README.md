@@ -1,6 +1,6 @@
 <!--
   Title: kubelogs
-  Description: Interactively dump Kubernetes container logs to local file.
+  Description: Interactively dump Kubernetes container logs to local files.
   Author: eduardobaitello
   -->
 
