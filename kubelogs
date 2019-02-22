@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+set -e
+
 VERSION="0.3.0"
 
 USAGE="kubelogs [-h] [-n] [-v] -- dump kubernetes pod logs to local files
@@ -9,78 +12,30 @@ Options:
 
 # Get namespace list from current context
 function select_namespace() {
-  NAMESPACE_LIST=(`kubectl get namespaces --output=jsonpath='{.items[*].metadata.name}'`)
-
-  if [[ -z ${NAMESPACE_LIST[@]} ]]; then echo "No namespaces found for this context!" >&2; exit 1; fi
-
-  printf "Select a namespace:\n"
-  PS3='Namespace: '
-  select option in "${NAMESPACE_LIST[@]}" "CANCEL"
-  do
-    if [[ ! -z $option ]] && [[ $option != "CANCEL" ]]; then
-      NAMESPACE=$option
-      echo "Namespace selected is $NAMESPACE"
-      break
-    elif [[ $option = "CANCEL" ]]; then
-      echo "Bye!"
-      exit
-    else
-      echo "Invalid namespace!"
-    fi
-  done
+  NAMESPACE_LIST=(`kubectl get namespaces --output=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | awk 'NF {print $1; print $1}'`)
+  if [[ -z ${NAMESPACE_LIST[@]} ]]; then echo "No namespaces found for context $(kubectl config current-context)!" >&2; exit 1; fi
+  NAMESPACE=$(whiptail --noitem --title "Select a namespace" --menu "choose" 16 78 10 "${NAMESPACE_LIST[@]}" 3>&1 1>&2 2>&3)
 }
 
-# Get pod list from namespace
-function select_pod() {
-  POD_LIST=(`kubectl get pods --namespace=$NAMESPACE --output=jsonpath='{.items[*].metadata.name}'`)
-
-  if [[ -z ${POD_LIST[@]} ]]; then echo "No pods found for namespace $NAMESPACE!" >&2; exit 1; fi
-
-  printf "\nSelect a pod:\n"
-  PS3='Pod: '
-  select option in "${POD_LIST[@]}" "CANCEL"
-  do
-    if [[ ! -z $option ]] && [[ $option != "CANCEL" ]]; then
-      POD=$option
-      echo "Pod selected is $POD"
-      break
-    elif [[ $option = "CANCEL" ]]; then
-      echo "Bye!"
-      exit
-    else
-      echo "Invalid Pod!"
-    fi
-  done
+# Get pod list from selected namespace
+function select_pods() {
+  POD_LIST=(`kubectl get pods --namespace=${NAMESPACE} --output=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | awk 'NF {print $1; print $1}'`)
+  if [[ -z ${POD_LIST[@]} ]]; then echo "No pods found for namespace ${NAMESPACE}!" >&2; exit 1; fi
+  PODS=(`whiptail --noitem --title "Select pods from namespace ${NAMESPACE}" --checklist "choose" 16 78 10 "${POD_LIST[@]}" 3>&1 1>&2 2>&3`)
+  # Remove quotes from array elements
+  PODS=("${PODS[@]//\"/}")
 }
 
-# Get container list from prod
-function select_container() {
-  CONTAINER_LIST=(`kubectl get pods --namespace=$NAMESPACE $POD --output=jsonpath='{.spec.containers[*].name}'`)
-
-  if [[ -z ${CONTAINER_LIST[@]} ]]; then echo "No containers found for pod $POD!" >&2; exit 1; fi
-
-  # If pod just have 1 container, use it and return
-  if [[ ${#CONTAINER_LIST[@]} -eq 1 ]]; then
-    CONTAINER=${CONTAINER_LIST[0]}
-    echo "Using the $CONTAINER unique container"
-    return
-  fi
-
-  printf "\nSelect a container:\n"
-  PS3='Container: '
-  select option in "${CONTAINER_LIST[@]}" "CANCEL"
-  do
-    if [[ ! -z $option ]] && [[ $option != "CANCEL" ]]; then
-      CONTAINER=$option
-      echo "Container selected is $CONTAINER"
-      break
-    elif [[ $option = "CANCEL" ]]; then
-      echo "Bye!"
-      exit
-    else
-      echo "Invalid container!"
-    fi
-  done
+# Get container logs from NAMESPACE/PODS
+function get_container_logs() {
+    for pod in "${PODS[@]}"
+    do
+      CONTAINERS=(`kubectl get pods --namespace=${NAMESPACE} ${pod} --output=jsonpath='{.spec.containers[*].name}'`)
+      for container in "${CONTAINERS[@]}"
+      do
+        kubectl logs --timestamps --namespace=${NAMESPACE} ${pod} --container=${container} >> "$OUTPUT_DIR/${pod}_${container}.log" || { printf "\nError while getting log content!" >&2; exit 1; }
+      done
+    done
 }
 
 if [ "$#" -ne 0 ]; then
@@ -97,7 +52,7 @@ if [ "$#" -ne 0 ]; then
           ;;
     -n|--namespace)
           if [ -z "$2" ]; then
-            select_namespace #Call select_namespace if parameter --namespace is empty
+            select_namespace # Call select_namespace if parameter --namespace is empty
           else
             NAMESPACE="$2"
           fi
@@ -120,22 +75,18 @@ fi
 if [[ -z "$NAMESPACE" ]]; then select_namespace; fi
 
 # Call select_pod function
-select_pod
+select_pods
 
-# Call select_container function
-select_container
-
-read -p "Enter a local directory for output file(s): " OUTPUT_DIR
+OUTPUT_DIR=$(whiptail --inputbox "Enter a local directory for output file(s):" 8 78 --title "Directory" 3>&1 1>&2 2>&3)
 while [[ ! -w $OUTPUT_DIR ]] || [[ ! -d $OUTPUT_DIR ]]
 do
-  printf "Invalid directory or insuficient permissions!\n" >&2
-  read -p "Enter a local directory for output file: " OUTPUT_DIR
+  whiptail --title "Output directory error" --yesno "Invalid directory or insuficient permissions! Try again?" 8 78
+  OUTPUT_DIR=$(whiptail --inputbox "Enter a local directory for output file(s):" 8 78 --title "Directory" 3>&1 1>&2 2>&3)
 done
 
 TIMESTAMP="$(date +"%Y%m%d_%H%M%S")"
 OUTPUT_NAME="$POD"_"$CONTAINER"_"$TIMESTAMP".log
 OUTPUT_FILE=$OUTPUT_DIR/$OUTPUT_NAME
 
-# Get logs from pods and save to local file(s)
-kubectl logs --timestamps --namespace=$NAMESPACE $POD -c $CONTAINER > $OUTPUT_FILE || { printf "\nError while getting log content!" >&2; exit 1; }
-echo "Log file successfully saved in $OUTPUT_FILE"
+# Call get_container_logs function
+get_container_logs
