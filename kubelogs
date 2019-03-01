@@ -26,13 +26,25 @@ function select_pods() {
   PODS=("${PODS[@]//\"/}")
 }
 
+# Select output directory
+function select_output_dir() {
+  OUTPUT_DIR=$(whiptail --inputbox "Enter a local directory for output file(s):" 8 78 --title "Directory" 3>&1 1>&2 2>&3)
+  while [[ ! -w $OUTPUT_DIR ]] || [[ ! -d $OUTPUT_DIR ]]
+  do
+    whiptail --title "Output directory error" --yesno "Invalid directory or insuficient permissions! Try again?" 8 78
+    OUTPUT_DIR=$(whiptail --inputbox "Enter a local directory for output file(s):" 8 78 --title "Directory" 3>&1 1>&2 2>&3)
+  done
+}
+
 # Get container logs from NAMESPACE/PODS
 function get_container_logs() {
+    #TIMESTAMP="$(date +"%Y%m%d_%H%M%S")"
     for pod in "${PODS[@]}"
     do
       CONTAINERS=(`kubectl get pods --namespace=${NAMESPACE} ${pod} --output=jsonpath='{.spec.containers[*].name}'`)
       for container in "${CONTAINERS[@]}"
       do
+        echo "Getting ${pod}/${container} logs..."
         kubectl logs --timestamps --namespace=${NAMESPACE} ${pod} --container=${container} >> "$OUTPUT_DIR/${pod}_${container}.log" || { printf "\nError while getting log content!" >&2; exit 1; }
       done
     done
@@ -77,16 +89,8 @@ if [[ -z "$NAMESPACE" ]]; then select_namespace; fi
 # Call select_pod function
 select_pods
 
-OUTPUT_DIR=$(whiptail --inputbox "Enter a local directory for output file(s):" 8 78 --title "Directory" 3>&1 1>&2 2>&3)
-while [[ ! -w $OUTPUT_DIR ]] || [[ ! -d $OUTPUT_DIR ]]
-do
-  whiptail --title "Output directory error" --yesno "Invalid directory or insuficient permissions! Try again?" 8 78
-  OUTPUT_DIR=$(whiptail --inputbox "Enter a local directory for output file(s):" 8 78 --title "Directory" 3>&1 1>&2 2>&3)
-done
-
-TIMESTAMP="$(date +"%Y%m%d_%H%M%S")"
-OUTPUT_NAME="$POD"_"$CONTAINER"_"$TIMESTAMP".log
-OUTPUT_FILE=$OUTPUT_DIR/$OUTPUT_NAME
+# Call select_dir function
+select_output_dir
 
 # Call get_container_logs function
 get_container_logs
