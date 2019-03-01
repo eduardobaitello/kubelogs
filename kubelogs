@@ -4,6 +4,12 @@ set -e
 
 VERSION="0.3.0"
 
+default_namespace="${KUBELOGS_NAMESPACE:-}"
+default_output_dir="${KUBELOGS_OUTPUT_DIR:-}"
+
+NAMESPACE="${default_namespace}"
+OUTPUT_DIR="${default_output_dir}"
+
 USAGE="kubelogs [-h] [-n] [-v] -- dump kubernetes pod logs to local files
 Options:
     -h, --help           Show this help text
@@ -26,10 +32,19 @@ function select_pods() {
   PODS=("${PODS[@]//\"/}")
 }
 
+# Validate output directory
+function validate_output_dir() {
+  if [[ -d $OUTPUT_DIR ]] || [[ -w $OUTPUT_DIR ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
 # Select output directory
 function select_output_dir() {
   OUTPUT_DIR=$(whiptail --inputbox "Enter a local directory for output file(s):" 8 78 --title "Directory" 3>&1 1>&2 2>&3)
-  while [[ ! -w $OUTPUT_DIR ]] || [[ ! -d $OUTPUT_DIR ]]
+  until validate_output_dir
   do
     whiptail --title "Output directory error" --yesno "Invalid directory or insuficient permissions! Try again?" 8 78
     OUTPUT_DIR=$(whiptail --inputbox "Enter a local directory for output file(s):" 8 78 --title "Directory" 3>&1 1>&2 2>&3)
@@ -38,14 +53,17 @@ function select_output_dir() {
 
 # Get container logs from NAMESPACE/PODS
 function get_container_logs() {
+
     #TIMESTAMP="$(date +"%Y%m%d_%H%M%S")"
     for pod in "${PODS[@]}"
     do
       CONTAINERS=(`kubectl get pods --namespace=${NAMESPACE} ${pod} --output=jsonpath='{.spec.containers[*].name}'`)
       for container in "${CONTAINERS[@]}"
       do
+        set +e
         echo "Getting ${pod}/${container} logs..."
-        kubectl logs --timestamps --namespace=${NAMESPACE} ${pod} --container=${container} >> "$OUTPUT_DIR/${pod}_${container}.log" || { printf "\nError while getting log content!" >&2; exit 1; }
+        kubectl logs --timestamps --namespace=${NAMESPACE} ${pod} --container=${container} >> "$OUTPUT_DIR/${pod}_${container}.log" || { echo "Error while getting ${pod}/${container} logs!" >&2; }
+        set -e
       done
     done
 }
@@ -69,6 +87,15 @@ if [ "$#" -ne 0 ]; then
             NAMESPACE="$2"
           fi
           ;;
+    -o|--output-dir)
+          if [ -z "$2" ]; then
+            echo "ERROR: --output-dir cannot be empty" >&2
+            exit 1
+          else
+            OUTPUT_DIR="$2"
+            validate_output_dir || { echo "ERROR: Invalid output directory or insuficient permissions!" >&2; exit 1; }
+          fi
+          ;;
     --)
           break
           ;;
@@ -89,8 +116,8 @@ if [[ -z "$NAMESPACE" ]]; then select_namespace; fi
 # Call select_pod function
 select_pods
 
-# Call select_dir function
-select_output_dir
+# Call output_dir functions
+if [[ -z "$OUTPUT_DIR" ]]; then select_output_dir; fi
 
 # Call get_container_logs function
 get_container_logs
