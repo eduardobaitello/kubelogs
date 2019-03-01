@@ -10,10 +10,11 @@ default_output_dir="${KUBELOGS_OUTPUT_DIR:-}"
 NAMESPACE="${default_namespace}"
 OUTPUT_DIR="${default_output_dir}"
 
-USAGE="kubelogs [-h] [-n] [-v] -- dump kubernetes pod logs to local files
+USAGE="kubelogs [-h] [-n] [-o] [-v] -- dump kubernetes container logs to local files
 Options:
     -h, --help           Show this help text
-    -n, --namespace      The Kubernetes namespace to list pods. If empty list available namespaces
+    -n, --namespace      Specify a kubernetes namespace to skip the interactive selection
+    -o, --output-dir     Specify a output directory to skip the interactive selection
     -v, --version        Prints the kubelogs version"
 
 # Get namespace list from current context
