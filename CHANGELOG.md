@@ -7,7 +7,6 @@ What changes through the versions.
  - Improved error handling
 ### Added
  - Support to pass additional flags to kubectl logs
- - Created a CHANGELOG file and description/usage to the README file
  - Support to environment variables
 
 ## [0.3.0]
