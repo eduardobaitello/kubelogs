@@ -54,4 +54,5 @@ KUBELOGS_TIMESTAMPS
 ![](examples/kubelogs_skipping_interactive.gif)
 
 ## Contribute
-Pull requests welcome!
+Pull requests are welcome!
+Feel free to open an issue to report bugs or requesting new features.
