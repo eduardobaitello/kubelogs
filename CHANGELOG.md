@@ -1,6 +1,15 @@
 # Change log
 What changes through the versions.
 
+## [1.0.0]
+### Changed
+ - Refactored kubelogs to use whiptail
+ - Improved error handling
+### Added
+ - Support to pass additional flags to kubectl logs
+ - Created a CHANGELOG file and description/usage to the README file
+ - Support to environment variables
+
 ## [0.3.0]
 ### Changed
  - Improved code indentation
