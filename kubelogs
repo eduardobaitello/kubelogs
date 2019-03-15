@@ -28,9 +28,7 @@ function select_namespace() {
 function select_pods() {
   POD_LIST=(`kubectl get pods --namespace=${NAMESPACE} --output=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | awk 'NF {print $1; print $1}'`)
   if [[ -z ${POD_LIST[@]} ]]; then echo "No pods found for namespace ${NAMESPACE}!" >&2; exit 1; fi
-  PODS=(`whiptail --noitem --title "Select pods from namespace ${NAMESPACE}" --checklist "choose" 16 78 10 "${POD_LIST[@]}" 3>&1 1>&2 2>&3`)
-  # Remove quotes from array elements
-  PODS=("${PODS[@]//\"/}")
+  PODS=(`whiptail --noitem --separate-output --title "Select pods from namespace ${NAMESPACE}" --checklist "choose" 16 78 10 "${POD_LIST[@]}" 3>&1 1>&2 2>&3`)
 }
 
 # Validate output directory
@@ -69,6 +67,7 @@ function get_container_logs() {
     done
 }
 
+# Parameters parsing
 if [ "$#" -ne 0 ]; then
   while [ "$#" -gt 0 ]
   do
