@@ -6,8 +6,8 @@ VERSION="0.3.0"
 
 default_namespace="${KUBELOGS_NAMESPACE:-}"
 default_output_dir="${KUBELOGS_OUTPUT_DIR:-}"
-default_tail="${KUBETAIL_TIMESTAMPS:--1}"
-default_timestamps="${KUBETAIL_TIMESTAMPS:-false}"
+default_tail="${KUBELOGS_TAIL:--1}"
+default_timestamps="${KUBELOGS_TIMESTAMPS:-false}"
 
 NAMESPACE="${default_namespace}"
 OUTPUT_DIR="${default_output_dir}"
