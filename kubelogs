@@ -1,21 +1,30 @@
 #!/usr/bin/env bash
 
-set -eu
+set -e
 
 VERSION="0.3.0"
 
 default_namespace="${KUBELOGS_NAMESPACE:-}"
 default_output_dir="${KUBELOGS_OUTPUT_DIR:-}"
+default_tail="${KUBETAIL_TIMESTAMPS:--1}"
+default_timestamps="${KUBETAIL_TIMESTAMPS:-false}"
 
 NAMESPACE="${default_namespace}"
 OUTPUT_DIR="${default_output_dir}"
+TAIL="${default_tail}"
+TIMESTAMPS="${default_timestamps}"
 
 USAGE="kubelogs [-h] [-n] [-o] [-v] -- dump kubernetes container logs to local files
-Options:
+kubelogs options:
     -h, --help           Show this help text
     -n, --namespace      Specify a kubernetes namespace to skip the interactive selection
     -o, --output-dir     Specify a output directory to skip the interactive selection
-    -v, --version        Prints the kubelogs version"
+    -v, --version        Prints the kubelogs version
+
+inherited from kubelogs:
+    --tail               Lines of recent log file to dump (default: -1, all lines)
+    --timestamps         Include timestamps on each line in the log output (default: false)
+"
 
 # Get namespace list from current context
 function select_namespace() {
@@ -59,10 +68,10 @@ function get_container_logs() {
       CONTAINERS=(`kubectl get pods --namespace=${NAMESPACE} ${pod} --output=jsonpath='{.spec.containers[*].name}'`)
       for container in "${CONTAINERS[@]}"
       do
-        set +eu
+        set +e
         echo "Getting ${pod}/${container} logs..."
-        kubectl logs --timestamps --namespace=${NAMESPACE} ${pod} --container=${container} >> "$OUTPUT_DIR/${pod}_${container}.log" || { echo "Error while getting ${pod}/${container} logs!" >&2; }
-        set -eu
+        kubectl logs --tail=${TAIL} --timestamps=${TIMESTAMPS} --namespace=${NAMESPACE} ${pod} --container=${container} > "$OUTPUT_DIR/${pod}_${container}.log" || { echo "Error while getting ${pod}/${container} logs!" >&2; }
+        set -e
       done
     done
 }
@@ -72,6 +81,7 @@ if [ "$#" -ne 0 ]; then
   while [ "$#" -gt 0 ]
   do
     case "$1" in
+    # kubelog flags
     -h|--help)
           echo "$USAGE"
           exit 0
@@ -89,11 +99,34 @@ if [ "$#" -ne 0 ]; then
           ;;
     -o|--output-dir)
           if [ -z "$2" ]; then
-            echo "ERROR: --output-dir cannot be empty" >&2
+            echo "ERROR: $1 cannot be empty" >&2
             exit 1
           else
             OUTPUT_DIR="$2"
             validate_output_dir || { echo "ERROR: Invalid output directory or insuficient permissions!" >&2; exit 1; }
+          fi
+          ;;
+    # Flags inherited from kubelogs
+    --tail)
+          if [ -z "$2" ]; then
+            echo "ERROR: $1 cannot be empty" >&2
+            exit 1
+          elif [[ ! "$2" =~ ^[0-9]+$ ]]; then
+            echo "ERROR: Use an integer value for $1" >&2
+            exit 1
+          else
+            TAIL="$2"
+          fi
+          ;;
+    --timestamps)
+          if [ -z "$2" ]; then
+            echo "ERROR: $1 cannot be empty" >&2
+            exit 1
+          elif [ "$2" != "true" ] && [ "$2" != "false" ]; then
+            echo "ERROR: Use \"true\" or \"false\" for $1" >&2
+            exit 1
+          else
+            TIMESTAMPS="$2"
           fi
           ;;
     --)
