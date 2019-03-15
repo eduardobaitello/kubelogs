@@ -1,7 +1,7 @@
 # Change log
 What changes through the versions.
 
-## [1.0.0]
+## [v1.0.0]
 ### Changed
  - Refactored kubelogs to use whiptail
  - Improved error handling
