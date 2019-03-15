@@ -47,7 +47,11 @@ KUBELOGS_TIMESTAMPS
 ```
 
 ## Examples
-_Under construction_
+## Default flags
+![](examples/kubelogs_no_flags.gif)
+
+## Skipping interactive steps
+![](examples/kubelogs_skipping_interactive.gif)
 
 ## Contribute
 Pull requests welcome!
