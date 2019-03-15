@@ -1,47 +1,57 @@
 <!--
   Title: kubelogs
-  Description: Interactively dump Kubernetes container logs to local files.
+  Description: Interactively dump logs from multiple Kubernetes containers.
   Author: eduardobaitello
   -->
 
 # kubelogs
-Kubelogs is a bash script that uses your current `kubectl context` to navigate through namespaces, pods and containers, saving their logs to a local text file.
+It is a bash script that uses your current _kubectl context_ to interactively select namespaces and multiple pods to download logs from. It basically runs _kubectl logs_ in a loop for all containers, redirecting the logs to local files.
+
+## Prerequisites
+kubelogs relies on [whiptail](https://linux.die.net/man/1/whiptail) to enable interactive selection.
+
+Whiptail is included by default on Debian. If you are using another OS, make sure to have it installed:
+
+### Linux
+`yum install newt` or `apt-get install whiptail`
+
+### MacOS
+`brew install newt`
+
+## Installation
+Just download the [kubelogs](kubelogs) file and it's done (download from [releases](https://github.com/eduardobaitello/kubelogs/releases) to get stable ones).
 
 ## Usage
-Just use `kubelogs` and navigate through the options to choose your container. Once selected, type the output local directory to save the `.log` text file.  
-The output file will be created with the name `POD_CONTAINER_TIMESTAMP.log`
+Run `kubelogs` without any flags to:
+* Interactively select a namespace from current context
+* Interactively select multiple pods to dump logs from (space bar to check, enter to confirm)
+* Input a output dir for log files
 
-### Example
+Output filenames are created in the form `pod_container.log`
 
+Use `kubelogs --help` for all available options and examples.
+
+### Skipping some interactive steps
+Optionally, the `--namespace` and `--output-dir` flags can be used to skip namespace selection and/or typing of output dir (entirely skipping of _whiptail_ is not supported yet).
+
+### Inherited flags
+Some flags can be passed to _kubectl logs_ that runs under the hood. Use `kubelogs --help` to see the available ones.
+
+### Environment
+kubelogs supports the following option values from environment variables:
 ```
-$ kubelogs
-Choose a namespace:
-1) some-namepace
-2) default
-3) kube-public
-4) kube-system
-5) CANCEL
-Namespace: 4
-Namespace selected is kube-system
-
-Choose a pod:
-1) kube-dns-2049707976-w48vz
-2) kubernetes-dashboard-2917854236-m4fgx
-3) tiller-deploy-1651596238-xfzcf
-4) CANCEL
-Pod: 1
-Pod selected is kube-dns-2049707976-w48vz
-
-Choose a container:
-1) kubedns	    3) dnsmasq-metrics	5) CANCEL
-2) dnsmasq	    4) healthz
-Container: 3
-Container selected is dnsmasq-metrics
-
-Type a local directory for output file: /tmp
-Log file saved in /tmp/kube-dns-2049707976-w48vz_dnsmasq-metrics_20171113_212706.log
+KUBELOGS_NAMESPACE
+KUBELOGS_OUTPUT_DIR
+KUBELOGS_TAIL
+KUBELOGS_TIMESTAMPS
 ```
 
-Optionally, the `--namespace` flag can be used with `kubelogs` to skip the interactive namespace selection.
+## Examples
+### Default flags
+![](examples/kubelogs_no_flags.gif)
 
-Use `kubelogs --help` for help and additional options.
+### Skipping interactive steps
+![](examples/kubelogs_skipping_interactive.gif)
+
+## Contribute
+Pull requests welcome!
